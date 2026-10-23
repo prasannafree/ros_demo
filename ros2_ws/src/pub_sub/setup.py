@@ -25,7 +25,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'odem_pub = pub_sub.odem_pub_node:main',
+            'odom_pub = pub_sub.odom_pub_node:main',
             'vel_sub = pub_sub.vel_sub_node:main',
         ],
     },
