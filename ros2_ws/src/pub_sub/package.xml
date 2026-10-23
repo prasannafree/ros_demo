@@ -3,11 +3,12 @@
 <package format="3">
   <name>pub_sub</name>
   <version>0.0.0</version>
-  <description>ROS 2 publisher and subscriber nodes for velocity messages.</description>
+  <description>ROS 2 publisher and subscriber nodes for wheel rotation speed messages.</description>
   <maintainer email="prasannafootball25@gmail.com">prasannafree</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
+  <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>

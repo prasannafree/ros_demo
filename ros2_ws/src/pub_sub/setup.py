@@ -27,6 +27,9 @@ setup(
         'console_scripts': [
             'odom_pub = pub_sub.odom_pub_node:main',
             'vel_sub = pub_sub.vel_sub_node:main',
+            'left_wheel_pub = pub_sub.left_wheel_pub_node:main',
+            'right_wheel_pub = pub_sub.right_wheel_pub_node:main',
+            'wheel_speed_sub = pub_sub.wheel_speed_sub_node:main',
         ],
     },
 )
