@@ -1,9 +1,10 @@
+from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
 
 
 class OdomPublisher(Node):
+
     def __init__(self):
         super().__init__('odom_pub_node')
         self.publisher = self.create_publisher(Twist, 'vel_topic', 25)
