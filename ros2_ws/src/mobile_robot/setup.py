@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'pub_sub'
+package_name = 'mobile_robot'
 
 setup(
     name=package_name,
@@ -25,9 +25,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'left_wheel_pub = pub_sub.left_wheel_pub_node:main',
-            'right_wheel_pub = pub_sub.right_wheel_pub_node:main',
-            'wheel_speed_sub = pub_sub.wheel_speed_sub_node:main',
+            'telemetry = mobile_robot.telemetry_node:main',
+            'teleop = mobile_robot.telemetry_node:main',
         ],
     },
 )
