@@ -27,6 +27,7 @@ setup(
         'console_scripts': [
             'telemetry = mobile_robot.telemetry_node:main',
             'teleop = mobile_robot.telemetry_node:main',
+            'tele_vel = mobile_robot.tele_vel_node:main',
         ],
     },
 )
