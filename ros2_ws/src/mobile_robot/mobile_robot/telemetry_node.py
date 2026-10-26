@@ -11,7 +11,7 @@ import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
-from std_msgs.msg import String
+from std_msgs.msg import Int32MultiArray
 
 KEY_MAPPINGS = {
     '\x1b[A': 'UP',
@@ -30,11 +30,26 @@ KEY_MAPPINGS = {
     'A': 'LEFT',
     'd': 'RIGHT',
     'D': 'RIGHT',
+    'q': 'UP_LEFT',
+    'Q': 'UP_LEFT',
+    'e': 'UP_RIGHT',
+    'E': 'UP_RIGHT',
+    'z': 'DOWN_LEFT',
+    'Z': 'DOWN_LEFT',
+    'c': 'DOWN_RIGHT',
+    'C': 'DOWN_RIGHT',
     ' ': 'SPACE',
     '\x1b': 'ESC',
-    'q': 'QUIT',
-    'Q': 'QUIT',
+    'x': 'QUIT',
+    'X': 'QUIT',
     '\x03': 'QUIT',
+}
+
+DIAGONAL_MAPPINGS = {
+    'UP_LEFT': ('UP', 'LEFT'),
+    'UP_RIGHT': ('UP', 'RIGHT'),
+    'DOWN_LEFT': ('DOWN', 'LEFT'),
+    'DOWN_RIGHT': ('DOWN', 'RIGHT'),
 }
 
 
@@ -46,7 +61,7 @@ class TelemetryNode(Node):
         super().__init__('keyboard_teleop_node')
 
         self.publisher = self.create_publisher(
-            String,
+            Int32MultiArray,
             '/keyboard_command',
             10
         )
@@ -56,7 +71,7 @@ class TelemetryNode(Node):
         self.running = True
 
         self.key_press_times = {}
-        self.key_timeout = 0.4
+        self.key_timeout = 0.1            # i am changing here 
         self.last_published_data = None
 
         self.is_tty = sys.stdin.isatty()
@@ -92,10 +107,13 @@ class TelemetryNode(Node):
 
         self.get_logger().info(
             'Keyboard teleoperation started.\n'
-            '  Move        : Arrow Keys or WASD\n'
-            '  Speed (0-9) : Set speed level\n'
-            '  Space       : Emergency STOP\n'
-            '  Esc / q     : Quit'
+            '  Format        : [speed, up, down, left, right]\n'
+            '  Move (Linear) : W/S or Up/Down Arrows\n'
+            '  Move (Turn)   : A/D or Left/Right Arrows\n'
+            '  Diagonal      : Q (Up+Left), E (Up+Right), Z (Down+Left), C (Down+Right)\n'
+            '  Speed (0-9)   : Set speed level\n'
+            '  Space         : Emergency STOP\n'
+            '  Esc / x       : Quit'
         )
 
     def _parse_keys(self, data):
@@ -145,8 +163,8 @@ class TelemetryNode(Node):
                     self.running = False
                     self.get_logger().info('Quit requested; stop published.')
                     if rclpy.ok():
-                        stop_msg = String()
-                        stop_msg.data = 'keys=STOP;speed_level=0'
+                        stop_msg = Int32MultiArray()
+                        stop_msg.data = [0, 0, 0, 0, 0]
                         self.publisher.publish(stop_msg)
                         rclpy.shutdown()
                     return
@@ -159,6 +177,11 @@ class TelemetryNode(Node):
                 elif key in ('UP', 'DOWN', 'LEFT', 'RIGHT'):
                     self.emergency_stop = False
                     self.key_press_times[key] = time.time()
+                elif key in DIAGONAL_MAPPINGS:
+                    self.emergency_stop = False
+                    now = time.time()
+                    for sub_key in DIAGONAL_MAPPINGS[key]:
+                        self.key_press_times[sub_key] = now
                 elif key.isdigit():
                     self.speed_level = int(key)
                     self.emergency_stop = False
@@ -167,31 +190,33 @@ class TelemetryNode(Node):
                     )
 
     def publish_command(self):
-        """Publish the current keyboard command string at a fixed rate."""
+        """Publish the current keyboard command array at a fixed rate."""
         if not self.running:
             return
 
-        msg = String()
+        msg = Int32MultiArray()
+        now = time.time()
+
         if self.emergency_stop:
-            msg.data = 'keys=STOP;speed_level=0'
+            speed = 0
+            up = down = left = right = 0
         else:
-            now = time.time()
-            active_keys = [
+            speed = int(self.speed_level)
+            active_keys = {
                 k for k, t in self.key_press_times.items()
                 if (now - t) <= self.key_timeout
-            ]
-            if active_keys:
-                key_text = ','.join(sorted(active_keys))
-            else:
-                key_text = 'NONE'
+            }
+            up = 1 if 'UP' in active_keys else 0
+            down = 1 if 'DOWN' in active_keys else 0
+            left = 1 if 'LEFT' in active_keys else 0
+            right = 1 if 'RIGHT' in active_keys else 0
 
-            msg.data = f'keys={key_text};speed_level={self.speed_level}'
-
+        msg.data = [speed, up, down, left, right]
         self.publisher.publish(msg)
 
         if msg.data != self.last_published_data:
             self.get_logger().info(f'Command: {msg.data}')
-            self.last_published_data = msg.data
+            self.last_published_data = list(msg.data)
 
     def restore_terminal(self):
         """Restore original terminal attributes."""
@@ -225,8 +250,8 @@ def main(args=None):
     finally:
         node.restore_terminal()
         if rclpy.ok():
-            stop_msg = String()
-            stop_msg.data = 'keys=STOP;speed_level=0'
+            stop_msg = Int32MultiArray()
+            stop_msg.data = [0, 0, 0, 0, 0]
             node.publisher.publish(stop_msg)
         node.destroy_node()
         if rclpy.ok():
